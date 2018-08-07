@@ -1,0 +1,16 @@
+<?php
+
+use NLMenke\DeployVersion\Deployments\Deployment;
+
+class DummyClass extends Deployment
+{
+    /**
+     * Run the deployments.
+     *
+     * @return void
+     */
+    public function deploy()
+    {
+        //
+    }
+}

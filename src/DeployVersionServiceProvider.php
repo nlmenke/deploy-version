@@ -1,6 +1,8 @@
 <?php namespace NLMenke\DeployVersion;
 
 use Illuminate\Support\ServiceProvider;
+use NLMenke\DeployVersion\Console\DeployMakeCommand;
+use NLMenke\DeployVersion\Deployments\DeploymentCreator;
 
 class DeployVersionServiceProvider extends ServiceProvider
 {
@@ -29,6 +31,8 @@ class DeployVersionServiceProvider extends ServiceProvider
     public function register()
     {
         $this->registerConfig();
+        $this->registerCreator();
+        $this->registerCommands();
     }
 
     /**
@@ -39,7 +43,7 @@ class DeployVersionServiceProvider extends ServiceProvider
     public function provides()
     {
         return [
-            //
+            DeploymentCreator::class,
         ];
     }
 
@@ -58,6 +62,18 @@ class DeployVersionServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register the deployment commands.
+     *
+     * @return void
+     */
+    protected function registerCommands(): void
+    {
+        $this->commands([
+            DeployMakeCommand::class,
+        ]);
+    }
+
+    /**
      * Register config.
      *
      * @return void
@@ -67,5 +83,17 @@ class DeployVersionServiceProvider extends ServiceProvider
         $configPath = __DIR__ . '/../config/config.php';
 
         $this->mergeConfigFrom($configPath, 'deploy-version');
+    }
+
+    /**
+     * Register the deployment creator.
+     *
+     * @return void
+     */
+    protected function registerCreator(): void
+    {
+        $this->app->singleton(DeploymentCreator::class, function ($app) {
+            return new DeploymentCreator($app['files']);
+        });
     }
 }
