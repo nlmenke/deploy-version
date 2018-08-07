@@ -1,8 +1,11 @@
 <?php namespace NLMenke\DeployVersion;
 
 use Illuminate\Support\ServiceProvider;
+use NLMenke\DeployVersion\Console\DeployCommand;
 use NLMenke\DeployVersion\Console\DeployMakeCommand;
+use NLMenke\DeployVersion\Deployments\Deployer;
 use NLMenke\DeployVersion\Deployments\DeploymentCreator;
+use NLMenke\DeployVersion\Deployments\DeploymentRepository;
 
 class DeployVersionServiceProvider extends ServiceProvider
 {
@@ -18,7 +21,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+    public function boot(): void
     {
         $this->bootConfig();
     }
@@ -28,9 +31,11 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->registerConfig();
+        $this->registerRepository();
+        $this->registerDeployer();
         $this->registerCreator();
         $this->registerCommands();
     }
@@ -40,10 +45,12 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return array
      */
-    public function provides()
+    public function provides(): array
     {
         return [
+            Deployer::class,
             DeploymentCreator::class,
+            DeploymentRepository::class,
         ];
     }
 
@@ -70,6 +77,7 @@ class DeployVersionServiceProvider extends ServiceProvider
     {
         $this->commands([
             DeployMakeCommand::class,
+            DeployCommand::class,
         ]);
     }
 
@@ -94,6 +102,34 @@ class DeployVersionServiceProvider extends ServiceProvider
     {
         $this->app->singleton(DeploymentCreator::class, function ($app) {
             return new DeploymentCreator($app['files']);
+        });
+    }
+
+    /**
+     * Register the deployer service.
+     *
+     * @return void
+     */
+    protected function registerDeployer(): void
+    {
+        $this->app->singleton(Deployer::class, function ($app) {
+            $repository = $app[DeploymentRepository::class];
+
+            return new Deployer($repository, $app['db'], $app['files']);
+        });
+    }
+
+    /**
+     * Register the deployment repository service.
+     *
+     * #return void
+     */
+    protected function registerRepository(): void
+    {
+        $this->app->singleton(DeploymentRepository::class, function ($app) {
+            $table = $app['config']['deploy-version.table'];
+
+            return new DeploymentRepository($app['db'], $table);
         });
     }
 }
