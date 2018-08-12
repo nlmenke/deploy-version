@@ -4,6 +4,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Schema\Blueprint;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class DeploymentRepository
 {
@@ -42,6 +43,20 @@ class DeploymentRepository
     }
 
     /**
+     * Get the last deployment.
+     *
+     * @return object
+     */
+    public function getLatest()
+    {
+        return $this->table()
+            ->orderBy('version', 'desc')
+            ->orderBy('deployment', 'desc')
+            ->get()
+            ->first();
+    }
+
+    /**
      * Get teh completed deployments.
      *
      * @return array
@@ -49,56 +64,9 @@ class DeploymentRepository
     public function getRan()
     {
         return $this->table()
-            ->orderBy('batch', 'asc')
+            ->orderBy('version', 'desc')
             ->orderBy('deployment', 'asc')
             ->pluck('deployment')
-            ->all();
-    }
-
-    /**
-     * Get list of deployments.
-     *
-     * @param int $steps
-     * @return array
-     */
-    public function getDeployments($steps)
-    {
-        $query = $this->table()
-            ->where('batch', '>=', '1');
-
-        return $query->orderBy('batch', 'desc')
-            ->orderBy('deployment', 'desc')
-            ->take($steps)
-            ->get()
-            ->all();
-    }
-
-    /**
-     * Get the last deployment batch.
-     *
-     * @return array
-     */
-    public function getLast()
-    {
-        $query = $this->table()
-            ->where('batch', $this->getLastBatchNumber());
-
-        return $query->orderBy('deployment', 'desc')
-            ->get()
-            ->all();
-    }
-
-    /**
-     * Get the completed deployments with their batch numbers.
-     *
-     * @return array
-     */
-    public function getDeploymentBatches()
-    {
-        return $this->table()
-            ->orderBy('batch', 'asc')
-            ->orderBy('deployment', 'asc')
-            ->pluck('batch', 'deployment')
             ->all();
     }
 
@@ -106,39 +74,25 @@ class DeploymentRepository
      * Log that a deployment was run.
      *
      * @param string $file
-     * @param int    $batch
+     * @param string $version
+     * @param string $preRelease
+     * @param string $build
+     * @param array  $releaseNotes
      * @return void
      */
-    public function log($file, $batch)
+    public function log($file, $version = '', $preRelease = '', $build = '', $releaseNotes = null)
     {
         $record = [
             'deployment' => $file,
-            'batch' => $batch,
+            'version' => $version,
+            'pre_release' => $preRelease,
+            'build' => $build,
+            'release_notes' => ($releaseNotes === null) ? null : json_encode($releaseNotes),
+
         ];
 
         $this->table()
             ->insert($record);
-    }
-
-    /**
-     * Get the next deployment batch number.
-     *
-     * @return int
-     */
-    public function getNextBatchNumber()
-    {
-        return $this->getLastBatchNumber() + 1;
-    }
-
-    /**
-     * Get the last deployment batch number.
-     *
-     * return int
-     */
-    public function getLastBatchNumber()
-    {
-        return $this->table()
-            ->max('batch');
     }
 
     /**
@@ -154,8 +108,13 @@ class DeploymentRepository
         $schema->create($this->table, function (Blueprint $table) {
             $table->increments('id');
             $table->string('deployment');
-            $table->integer('batch');
+            $table->string('version');
+            $table->string('pre_release')->nullable();
+            $table->string('build')->nullable();
+            $table->text('release_notes')->nullable();
         });
+
+        (new ConsoleOutput)->write('<info>Deployment table created successfully.</info>', true);
     }
 
     /**

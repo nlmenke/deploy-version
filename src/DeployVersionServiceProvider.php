@@ -21,7 +21,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot(): void
+    public function boot()
     {
         $this->bootConfig();
     }
@@ -31,13 +31,14 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function register(): void
+    public function register()
     {
         $this->registerConfig();
         $this->registerRepository();
         $this->registerDeployer();
         $this->registerCreator();
         $this->registerCommands();
+        $this->registerFacade();
     }
 
     /**
@@ -45,12 +46,13 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return array
      */
-    public function provides(): array
+    public function provides()
     {
         return [
             Deployer::class,
             DeploymentCreator::class,
             DeploymentRepository::class,
+            DeployVersionService::class,
         ];
     }
 
@@ -59,7 +61,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function bootConfig(): void
+    protected function bootConfig()
     {
         $configPath = __DIR__ . '/../config/config.php';
 
@@ -73,7 +75,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerCommands(): void
+    protected function registerCommands()
     {
         $this->commands([
             DeployMakeCommand::class,
@@ -86,7 +88,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerConfig(): void
+    protected function registerConfig()
     {
         $configPath = __DIR__ . '/../config/config.php';
 
@@ -98,7 +100,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerCreator(): void
+    protected function registerCreator()
     {
         $this->app->singleton(DeploymentCreator::class, function ($app) {
             return new DeploymentCreator($app['files']);
@@ -110,7 +112,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerDeployer(): void
+    protected function registerDeployer()
     {
         $this->app->singleton(Deployer::class, function ($app) {
             $repository = $app[DeploymentRepository::class];
@@ -119,12 +121,23 @@ class DeployVersionServiceProvider extends ServiceProvider
         });
     }
 
+    protected function registerFacade()
+    {
+        $this->app->singleton(DeployVersionService::class, function ($app) {
+            $repository = $app[DeploymentRepository::class];
+
+            return new DeployVersionService($repository);
+        });
+
+        $this->app->alias(DeployVersionService::class, 'deploy-version');
+    }
+
     /**
      * Register the deployment repository service.
      *
      * #return void
      */
-    protected function registerRepository(): void
+    protected function registerRepository()
     {
         $this->app->singleton(DeploymentRepository::class, function ($app) {
             $table = $app['config']['deploy-version.table'];

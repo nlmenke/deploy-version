@@ -60,6 +60,7 @@ class DeployCommand extends BaseCommand
     protected function getOptions()
     {
         return [
+            ['message', 'm', Inputoption::VALUE_OPTIONAL, 'The message for maintenance mode'],
             ['force', 'f', InputOption::VALUE_NONE, 'Force the operation to run when in production'],
         ];
     }
@@ -76,6 +77,11 @@ class DeployCommand extends BaseCommand
             return;
         }
 
+        $this->startMaintenance();
+
+        // get the version before deployment
+        $preDeployVersion = \DeployVersion::version('short');
+
         if (!$this->deployer->repositoryExists()) {
             $this->repository->createRepository();
         }
@@ -84,6 +90,58 @@ class DeployCommand extends BaseCommand
 
         foreach ($this->deployer->getNotes() as $note) {
             $this->output->writeln($note);
+        }
+
+        // get the version after deployment
+        $postDeployVersion = \DeployVersion::version('short');
+
+        $deploymentsRun = $this->deployer->getDeploymentsRun();
+
+        if ($deploymentsRun > 0) {
+            // display upgrade information
+            $this->line('Deployments successful: <info>' . $deploymentsRun . '</info>');
+            $this->line('Project updated from <comment>' . $preDeployVersion . '</comment> to <info>' . $postDeployVersion . '</info>');
+        }
+
+        $this->endMaintenance();
+    }
+
+    /**
+     * Set the application to maintenance mode.
+     *
+     * @return void
+     */
+    protected function startMaintenance()
+    {
+        if (config('deploy-version.maintenance_mode')) {
+            // bring the application down
+            $message = $this->option('message');
+            if ($message === null) {
+                $message = config('deploy-version.maintenance_mode');
+            }
+
+            if ($message === true) {
+                $artisanParams = [];
+            } else {
+                $artisanParams = [
+                    '--message' => $message
+                ];
+            }
+
+            \Artisan::call('down', $artisanParams, $this->output);
+        }
+    }
+
+    /**
+     * Resume application functionality.
+     *
+     * @return void
+     */
+    protected function endMaintenance()
+    {
+        if (config('deploy-version.maintenance_mode')) {
+            // bring the application back up
+            \Artisan::call('up', [], $this->output);
         }
     }
 }

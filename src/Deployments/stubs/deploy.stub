@@ -1,0 +1,37 @@
+<?php
+
+use NLMenke\DeployVersion\Deployments\Deployment;
+
+class DummyClass extends Deployment
+{
+{MAJOR_VAR}
+{MINOR_VAR}
+
+    /**
+     * Patch versions include backwards-compatible bug fixes.
+     *
+     * Patch version Z (x.y.Z | x > 0) MUST be incremented if only backwards compatible bug fixes
+     * are introduced. A bug fix is defined as an internal change that fixes incorrect behavior.
+     *
+     * A true value will result in the patch version being increased while major and minor versions
+     * will remain unchanged (e.g.: 1.2.3 -> 1.2.4). We'll assume all deployments are a patch
+     * unless stated otherwise.
+     *
+     * @var bool
+     */
+    protected $patch = {PATCH_VALUE};
+
+{PRE_RELEASE_VAR}
+{MIGRATE_VAR}
+{RELEASE_NOTES_VAR}
+
+    /**
+     * Additional deployment functionality.
+     *
+     * return void
+     */
+    public function deploy()
+    {
+        //
+    }
+}

@@ -29,10 +29,11 @@ class DeploymentCreator
      *
      * @param string $name
      * @param string $path
+     * @param array  $options
      * @return string
      * @throws \Exception
      */
-    public function create($name, $path)
+    public function create($name, $path, $options)
     {
         $this->ensureDeploymentDoesntAlreadyExist($name);
 
@@ -42,7 +43,7 @@ class DeploymentCreator
             $this->files->makeDirectory($path);
         }
 
-        $this->files->put($path = $this->getPath($name, $path), $this->populateStub($name, $stub));
+        $this->files->put($path = $this->getPath($name, $path), $this->populateStub($name, $stub, $options));
 
         return $path;
     }
@@ -66,12 +67,13 @@ class DeploymentCreator
     /**
      * Get the deployment stub file.
      *
+     * @param string $stub
      * @return string
      * @throws FileNotFoundException
      */
-    protected function getStub()
+    protected function getStub($stub = 'deploy')
     {
-        return $this->files->get($this->stubPath() . '/blank.stub');
+        return $this->files->get($this->stubPath() . DIRECTORY_SEPARATOR . "{$stub}.stub");
     }
 
     /**
@@ -79,10 +81,54 @@ class DeploymentCreator
      *
      * @param string $name
      * @param string $stub
+     * @param array  $options
      * @return string
+     * @throws FileNotFoundException
      */
-    protected function populateStub($name, $stub)
+    protected function populateStub($name, $stub, $options)
     {
+        $isPatch = "true";
+        if ($options['major']) {
+            // insert major release variable, set to true
+            $stub = str_replace('{MAJOR_VAR}', $this->getStub('major'), $stub);
+            $isPatch = "false";
+        } elseif ($options['minor']) {
+            // insert minor release variable, set to true
+            $stub = str_replace('{MINOR_VAR}', $this->getStub('minor'), $stub);
+            $isPatch = "false";
+        }
+
+        // patch is assumed true, set to false if not patch release
+        $stub = str_replace('{PATCH_VALUE}', $isPatch, $stub);
+
+        if ($options['pre']) {
+            // insert pre-release variable, set to option value
+            $stub = str_replace('{PRE_RELEASE_VAR}', $this->getStub('pre'), $stub);
+            $stub = str_replace('{PRE_RELEASE_VALUE}', $options['pre'], $stub);
+        }
+
+        if ($options['migrate']) {
+            // insert migration variable, set to true
+            $stub = str_replace('{MIGRATE_VAR}', $this->getStub('migrate'), $stub);
+        }
+
+        // insert notes variable, set to empty array
+        $stub = str_replace('{RELEASE_NOTES_VAR}', $this->getStub('notes'), $stub);
+
+        // remove remaining variable placeholders
+        $stub = str_replace([
+            '{MAJOR_VAR}',
+            '{MINOR_VAR}',
+            '{PRE_RELEASE_VAR}',
+            '{MIGRATE_VAR}',
+        ], '', $stub);
+
+        // remove extra newlines
+        $stub = preg_replace('/(\R){3,}/', PHP_EOL . PHP_EOL, $stub);
+        $stub = preg_replace('/\{(\R){2,}/', '{' . PHP_EOL, $stub);
+        $stub = preg_replace('/(\R){2,}\}/', PHP_EOL . '}', $stub);
+
+        // set class name
         $stub = str_replace('DummyClass', $this->getClassName($name), $stub);
 
         return $stub;
@@ -113,7 +159,7 @@ class DeploymentCreator
             $filename .= '_' . $name;
         }
 
-        return $path . '/' . $filename . '.php';
+        return $path . DIRECTORY_SEPARATOR . $filename . '.php';
     }
 
     /**
@@ -133,7 +179,7 @@ class DeploymentCreator
      */
     public function stubPath()
     {
-        return __DIR__ . '/stubs';
+        return __DIR__ . DIRECTORY_SEPARATOR . 'stubs';
     }
 
     /**

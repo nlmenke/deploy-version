@@ -1,0 +1,15 @@
+
+    /**
+     * Major versions include incompatible API changes.
+     *
+     * Major version X (X.y.z | X > 0) MUST be incremented if any backwards incompatible changes
+     * are introduced to the public API. It MAY include minor and patch level changes. Patch and
+     * minor version MUST be reset to 0 when major version is incremented.
+     *
+     * The first version you deploy on your production server should have this set to true in at
+     * least 1 deployment. If this is true, minor and patch versions will be reset to 0 and the
+     * major version will be increased (e.g.: 1.2.3 -> 2.0.0).
+     *
+     * @var bool
+     */
+    protected $major = true;

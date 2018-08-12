@@ -6,15 +6,23 @@ use Illuminate\Database\Schema\Grammars\Grammar;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class Deployer
 {
     /**
-     * The deployment repository implementation.
+     * The name of the default connection.
      *
-     * @var DeploymentRepository
+     * @var string
      */
-    protected $repository;
+    protected $connection;
+
+    /**
+     * Number of deployments run.
+     *
+     * @var bool
+     */
+    protected $deploymentsRun = 0;
 
     /**
      * The filesystem instance.
@@ -24,18 +32,11 @@ class Deployer
     protected $files;
 
     /**
-     * The connection resolver instance.
+     * Determine if the deployment cycle has migrated.
      *
-     * @var ConnectionResolverInterface
+     * @var bool
      */
-    protected $resolver;
-
-    /**
-     * The name of the default connection.
-     *
-     * @var string
-     */
-    protected $connection;
+    protected $migrated = false;
 
     /**
      * The notes for the current operation.
@@ -43,6 +44,20 @@ class Deployer
      * @var array
      */
     protected $notes = [];
+
+    /**
+     * The deployment repository implementation.
+     *
+     * @var DeploymentRepository
+     */
+    protected $repository;
+
+    /**
+     * The connection resolver instance.
+     *
+     * @var ConnectionResolverInterface
+     */
+    protected $resolver;
 
     /**
      * Create a new deployer instance.
@@ -57,6 +72,224 @@ class Deployer
         $this->repository = $repository;
         $this->resolver = $resolver;
         $this->files = $files;
+    }
+
+    /**
+     * @param Deployment $deployment
+     * @return string
+     */
+    protected function calculateNewVersion(Deployment $deployment)
+    {
+        // use the starting_version config item as a default
+        $oldVersion = config('deploy-version.starting_version');
+
+        // pull the latest version from the deployments table
+        $latestDeployment = $this->repository->getLatest();
+        if ($latestDeployment !== null) {
+            $oldVersion = $latestDeployment->version;
+        }
+
+        $versionArr = explode('.', $oldVersion);
+
+        // ensure latestVersion was set properly
+        $versionArr[0] = isset($versionArr[0]) ? (int)$versionArr[0] : 0;
+        $versionArr[1] = isset($versionArr[1]) ? (int)$versionArr[1] : 0;
+        $versionArr[2] = isset($versionArr[2]) ? (int)$versionArr[2] : 0;
+
+        // each deployment may only have a major, minor, OR patch and increment by 1
+        if ($deployment->isMajor()) {
+            $versionArr[0]++;
+
+            // major release resets minor and patch
+            $versionArr[1] = 0;
+            $versionArr[2] = 0;
+        } elseif ($deployment->isMinor()) {
+            $versionArr[1]++;
+
+            // minor release resets patch
+            $versionArr[2] = 0;
+        } elseif ($deployment->isPatch()) {
+            $versionArr[2]++;
+        }
+
+        $newVersion = implode('.', $versionArr);
+
+        return $newVersion;
+    }
+
+    protected function getCommitHash()
+    {
+        return exec('git rev-parse --short HEAD');
+    }
+
+    /**
+     * Get the default connection name.
+     *
+     * @return string
+     */
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    /**
+     * Get all of the deployment files in a given path.
+     *
+     * @param string|array $paths
+     * @return array
+     */
+    public function getDeploymentFiles($paths)
+    {
+        return Collection::make($paths)->flatMap(function ($path) {
+            return $this->files->glob($path . DIRECTORY_SEPARATOR . '*_*.php');
+        })->filter()->sortBy(function ($file) {
+            return $this->getDeploymentName($file);
+        })->values()->keyBy(function ($file) {
+            return $this->getDeploymentName($file);
+        })->all();
+    }
+
+    /**
+     * Get the name of the deployment.
+     *
+     * @param string $path
+     * @return string
+     */
+    public function getDeploymentName($path)
+    {
+        return str_replace('.php', '', basename($path));
+    }
+
+    /**
+     * Get the number of deployments run.
+     *
+     * @return bool
+     */
+    public function getDeploymentsRun()
+    {
+        return $this->deploymentsRun;
+    }
+
+    /**
+     * Get the file system instance.
+     *
+     * @return Filesystem
+     */
+    public function getFilesystem()
+    {
+        return $this->files;
+    }
+
+    /**
+     * Get the notes for the last operation.
+     *
+     * @return array
+     */
+    public function getNotes()
+    {
+        return $this->notes;
+    }
+
+    /**
+     * Get the deployment repository instance.
+     *
+     * @return DeploymentRepository
+     */
+    public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    /**
+     * Get the schema grammar out of a deployment connection.
+     *
+     * @param Connection $connection
+     * @return Grammar
+     */
+    protected function getSchemaGrammar($connection)
+    {
+        if (is_null($grammar = $connection->getSchemaGrammar())) {
+            $connection->useDefaultSchemaGrammar();
+
+            $grammar = $connection->getSchemaGrammar();
+        }
+
+        return $grammar;
+    }
+
+    /**
+     * Raise a note event for the deployer.
+     *
+     * @param string $message
+     * @return void
+     */
+    protected function note($message)
+    {
+        $this->notes[] = $message;
+    }
+
+    /**
+     * Get the deployment files that have not yet run.
+     *
+     * @param array $files
+     * @param array $ran
+     * @return array
+     */
+    protected function pendingDeployments($files, $ran)
+    {
+        return Collection::make($files)
+            ->reject(function ($file) use ($ran) {
+                return in_array($this->getDeploymentName($file), $ran);
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Determine if the deployment repository exists.
+     *
+     * @return bool
+     */
+    public function repositoryExists()
+    {
+        return $this->repository->repositoryExists();
+    }
+
+    /**
+     * Require in all the deployment files in a given path.
+     *
+     * @param array $files
+     * @return void
+     */
+    public function requireFiles(array $files)
+    {
+        foreach ($files as $file) {
+            $this->files->requireOnce($file);
+        }
+    }
+
+    /**
+     * Resolve a deployment instance from a file.
+     *
+     * @param string $file
+     * @return object
+     */
+    public function resolve($file)
+    {
+        $class = Str::studly(implode('_', array_slice(explode('_', $file), 4)));
+
+        return new $class;
+    }
+
+    /**
+     * Resolve the database connection instance.
+     *
+     * @param string $connection
+     * @return Connection
+     */
+    public function resolveConnection($connection)
+    {
+        return $this->resolver->connection($connection ?: $this->connection);
     }
 
     /**
@@ -82,20 +315,42 @@ class Deployer
     }
 
     /**
-     * Get the deployment files that have not yet run.
+     * Run the deployment.
      *
-     * @param array $files
-     * @param array $ran
-     * @return array
+     * @param string $file
+     * @return void
+     * @throws \Throwable
      */
-    protected function pendingDeployments($files, $ran)
+    protected function runDeployment($file)
     {
-        return Collection::make($files)
-            ->reject(function ($file) use ($ran) {
-                return in_array($this->getDeploymentName($file), $ran);
-            })
-            ->values()
-            ->all();
+        $name = $this->getDeploymentName($file);
+
+        /** @var Deployment $deployment */
+        $deployment = $this->resolve($name);
+
+        $this->note("<comment>Deploying:</comment> {$name}");
+
+        if ($deployment->hasMigrations() && !$this->migrated) {
+            $this->migrated = true;
+
+            $output = new ConsoleOutput;
+            \Artisan::call('migrate', [], $output);
+        }
+
+        if (method_exists($deployment, 'deploy')) {
+            $deployment->deploy();
+        }
+
+        $version = $this->calculateNewVersion($deployment);
+        $preRelease = $deployment->isPreRelease() !== false ? $deployment->isPreRelease() : null;
+        $build = $this->getCommitHash();
+        $releaseNotes = empty($deployment->getReleaseNotes()) ? null : $deployment->getReleaseNotes();
+
+        $this->repository->log($name, $version, $preRelease, $build, $releaseNotes);
+
+        $this->deploymentsRun++;
+
+        $this->note("<info>Deployed:</info> {$name}");
     }
 
     /**
@@ -113,123 +368,24 @@ class Deployer
             return;
         }
 
-        $batch = $this->repository->getNextBatchNumber();
-
         foreach ($deployments as $file) {
-            $this->runDeploy($file, $batch);
+            $this->runDeployment($file);
         }
-    }
 
-    /**
-     * Run "up" a migration instance.
-     *
-     * @param string $file
-     * @param int    $batch
-     * @return void
-     * @throws \Throwable
-     */
-    protected function runDeploy($file, $batch)
-    {
-        $name = $this->getDeploymentName($file);
+        // clear cache and views
+        $output = new ConsoleOutput;
+        \Artisan::call('cache:clear', [], $output);
+        \Artisan::call('view:clear', [], $output);
 
-        $deployment = $this->resolve($name);
+        // execute commands from config
+        foreach (config('deploy-version.commands') as $command) {
+            // prevent git commands from resetting development
+            if (!\App::isLocal() || strpos($command, 'git') === false) {
+                exec($command, $output);
 
-        $this->note("<comment>Deploying:</comment> {$name}");
-
-        $this->runDeployment($deployment, 'deploy');
-
-        $this->repository->log($name, $batch);
-
-        $this->note("<info>Deployed:</info> {$name}");
-    }
-
-    /**
-     * Run a deployment inside a transaction if the database supports it.
-     *
-     * @param object $deployment
-     * @param string $method
-     * @return void
-     * @throws \Throwable
-     */
-    protected function runDeployment($deployment, $method)
-    {
-        $connection = $this->resolveConnection($deployment->getConnection());
-
-        $callback = function () use ($deployment, $method) {
-            if (method_exists($deployment, $method)) {
-                $deployment->{$method}();
+                (new ConsoleOutput)->write($output, true);
             }
-        };
-
-        if ($this->getSchemaGrammar($connection)->supportsSchemaTransactions() && $deployment->withinTransaction) {
-            $connection->transaction($callback);
-        } else {
-            $callback();
         }
-    }
-
-    /**
-     * Resolve a deployment instance from a file.
-     *
-     * @param string $file
-     * @return object
-     */
-    public function resolve($file)
-    {
-        $class = Str::studly(implode('_', array_slice(explode('_', $file), 4)));
-
-        return new $class;
-    }
-
-    /**
-     * Get all of the deployment files in a given path.
-     *
-     * @param string|array $paths
-     * @return array
-     */
-    public function getDeploymentFiles($paths)
-    {
-        return Collection::make($paths)->flatMap(function ($path) {
-            return $this->files->glob($path . '/*_*.php');
-        })->filter()->sortBy(function ($file) {
-            return $this->getDeploymentName($file);
-        })->values()->keyBy(function ($file) {
-            return $this->getDeploymentName($file);
-        })->all();
-    }
-
-    /**
-     * Require in all the deployment files in a given path.
-     *
-     * @param array $files
-     * @return void
-     */
-    public function requireFiles(array $files)
-    {
-        foreach ($files as $file) {
-            $this->files->requireOnce($file);
-        }
-    }
-
-    /**
-     * Get the name of the deployment.
-     *
-     * @param string $path
-     * @return string
-     */
-    public function getDeploymentName($path)
-    {
-        return str_replace('.php', '', basename($path));
-    }
-
-    /**
-     * Get the default connection name.
-     *
-     * @return string
-     */
-    public function getConnection()
-    {
-        return $this->connection;
     }
 
     /**
@@ -247,84 +403,5 @@ class Deployer
         $this->repository->setSource($name);
 
         $this->connection = $name;
-    }
-
-    /**
-     * Resolve the database connection instance.
-     *
-     * @param string $connection
-     * @return Connection
-     */
-    public function resolveConnection($connection)
-    {
-        return $this->resolver->connection($connection ?: $this->connection);
-    }
-
-    /**
-     * Get the schema grammar out of a deployment connection.
-     *
-     * @param Connection $connection
-     * @return Grammar
-     */
-    protected function getSchemaGrammar($connection)
-    {
-        if (is_null($grammar = $connection->getSchemaGrammar())) {
-            $connection->useDefaultSchemaGrammar();
-
-            $grammar = $connection->getSchemaGrammar();
-        }
-
-        return $grammar;
-    }
-
-    /**
-     * Get the deployment repository instance.
-     *
-     * @return DeploymentRepository
-     */
-    public function getRepository()
-    {
-        return $this->repository;
-    }
-
-    /**
-     * Determine if the deployment repository exists.
-     *
-     * @return bool
-     */
-    public function repositoryExists()
-    {
-        return $this->repository->repositoryExists();
-    }
-
-    /**
-     * Get the file system instance.
-     *
-     * @return Filesystem
-     */
-    public function getFilesystem()
-    {
-        return $this->files;
-    }
-
-    /**
-     * Raise a note event for the deployer.
-     *
-     * @param string $message
-     * @return void
-     */
-    protected function note($message)
-    {
-        $this->notes[] = $message;
-    }
-
-    /**
-     * Get the notes for the last operation.
-     *
-     * @return array
-     */
-    public function getNotes()
-    {
-        return $this->notes;
     }
 }

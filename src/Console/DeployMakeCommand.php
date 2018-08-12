@@ -4,6 +4,7 @@ use Illuminate\Support\Composer;
 use Illuminate\Support\Str;
 use NLMenke\DeployVersion\Deployments\DeploymentCreator;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 
 class DeployMakeCommand extends BaseCommand
 {
@@ -56,7 +57,23 @@ class DeployMakeCommand extends BaseCommand
     protected function getArguments()
     {
         return [
-            ['name', InputArgument::OPTIONAL, 'The name of the deployment/feature']
+            ['name', InputArgument::OPTIONAL, 'The name of the deployment/feature'],
+        ];
+    }
+
+    /**
+     * Get the console command options.
+     *
+     * @return array
+     */
+    protected function getOptions()
+    {
+        return [
+            ['major', '', InputOption::VALUE_NONE, 'Create a major release deployment'],
+            ['minor', '', InputOption::VALUE_NONE, 'Create a minor release deployment'],
+            ['patch', '', InputOption::VALUE_NONE, 'Create a patch release deployment'],
+            ['pre', '', InputOption::VALUE_OPTIONAL, 'Deployment is a pre-release'],
+            ['migrate', '', InputOption::VALUE_NONE, 'Deployment should migrate'],
         ];
     }
 
@@ -84,7 +101,7 @@ class DeployMakeCommand extends BaseCommand
      */
     protected function writeDeployment($name)
     {
-        $file = pathinfo($this->creator->create($name, $this->getDeploymentPath()), PATHINFO_FILENAME);
+        $file = pathinfo($this->creator->create($name, $this->getDeploymentPath(), $this->input->getOptions()), PATHINFO_FILENAME);
 
         $this->line("<info>Created Deployments:</info> {$file}");
     }
