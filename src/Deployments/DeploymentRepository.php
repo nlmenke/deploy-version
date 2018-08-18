@@ -4,6 +4,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Collection;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
 class DeploymentRepository
@@ -45,7 +46,7 @@ class DeploymentRepository
     /**
      * Get the last deployment.
      *
-     * @return object
+     * @return Collection|null
      */
     public function getLatest()
     {
@@ -57,11 +58,11 @@ class DeploymentRepository
     }
 
     /**
-     * Get teh completed deployments.
+     * Get the completed deployments.
      *
      * @return array
      */
-    public function getRan()
+    public function getRan(): array
     {
         return $this->table()
             ->orderBy('version', 'desc')
@@ -73,22 +74,21 @@ class DeploymentRepository
     /**
      * Log that a deployment was run.
      *
-     * @param string $file
-     * @param string $version
-     * @param string $preRelease
-     * @param string $build
-     * @param array  $releaseNotes
+     * @param string      $file
+     * @param string      $version
+     * @param string|null $preRelease
+     * @param string|null $build
+     * @param array       $releaseNotes
      * @return void
      */
-    public function log($file, $version = '', $preRelease = '', $build = '', $releaseNotes = null)
+    public function log(string $file, string $version = '', string $preRelease = null, string $build = null, array $releaseNotes = [])
     {
         $record = [
             'deployment' => $file,
             'version' => $version,
             'pre_release' => $preRelease,
             'build' => $build,
-            'release_notes' => ($releaseNotes === null) ? null : json_encode($releaseNotes),
-
+            'release_notes' => json_encode($releaseNotes),
         ];
 
         $this->table()
@@ -111,7 +111,7 @@ class DeploymentRepository
             $table->string('version');
             $table->string('pre_release')->nullable();
             $table->string('build')->nullable();
-            $table->text('release_notes')->nullable();
+            $table->text('release_notes');
         });
 
         (new ConsoleOutput)->write('<info>Deployment table created successfully.</info>', true);
@@ -122,7 +122,7 @@ class DeploymentRepository
      *
      * @return bool
      */
-    public function repositoryExists()
+    public function repositoryExists(): bool
     {
         $schema = $this->getConnection()
             ->getSchemaBuilder();
@@ -135,7 +135,7 @@ class DeploymentRepository
      *
      * @return Builder
      */
-    protected function table()
+    protected function table(): Builder
     {
         return $this->getConnection()
             ->table($this->table)
@@ -147,7 +147,7 @@ class DeploymentRepository
      *
      * @return ConnectionResolverInterface
      */
-    public function getConnectionResolver()
+    public function getConnectionResolver(): ConnectionResolverInterface
     {
         return $this->resolver;
     }
@@ -157,7 +157,7 @@ class DeploymentRepository
      *
      * @return Connection
      */
-    public function getConnection()
+    public function getConnection(): Connection
     {
         return $this->resolver->connection($this->connection);
     }

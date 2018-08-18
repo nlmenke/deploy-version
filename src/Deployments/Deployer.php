@@ -20,7 +20,7 @@ class Deployer
     /**
      * Number of deployments run.
      *
-     * @var bool
+     * @var int
      */
     protected $deploymentsRun = 0;
 
@@ -78,7 +78,7 @@ class Deployer
      * @param Deployment $deployment
      * @return string
      */
-    protected function calculateNewVersion(Deployment $deployment)
+    protected function calculateNewVersion(Deployment $deployment): string
     {
         // use the starting_version config item as a default
         $oldVersion = config('deploy-version.starting_version');
@@ -117,7 +117,12 @@ class Deployer
         return $newVersion;
     }
 
-    protected function getCommitHash()
+    /**
+     * Get the version build.
+     *
+     * @return string
+     */
+    protected function getBuild(): string
     {
         return exec('git rev-parse --short HEAD');
     }
@@ -127,7 +132,7 @@ class Deployer
      *
      * @return string
      */
-    public function getConnection()
+    public function getConnection(): string
     {
         return $this->connection;
     }
@@ -138,7 +143,7 @@ class Deployer
      * @param string|array $paths
      * @return array
      */
-    public function getDeploymentFiles($paths)
+    public function getDeploymentFiles($paths): array
     {
         return Collection::make($paths)->flatMap(function ($path) {
             return $this->files->glob($path . DIRECTORY_SEPARATOR . '*_*.php');
@@ -155,7 +160,7 @@ class Deployer
      * @param string $path
      * @return string
      */
-    public function getDeploymentName($path)
+    public function getDeploymentName(string $path): string
     {
         return str_replace('.php', '', basename($path));
     }
@@ -163,9 +168,9 @@ class Deployer
     /**
      * Get the number of deployments run.
      *
-     * @return bool
+     * @return int
      */
-    public function getDeploymentsRun()
+    public function getDeploymentsRun(): int
     {
         return $this->deploymentsRun;
     }
@@ -175,7 +180,7 @@ class Deployer
      *
      * @return Filesystem
      */
-    public function getFilesystem()
+    public function getFilesystem(): Filesystem
     {
         return $this->files;
     }
@@ -185,7 +190,7 @@ class Deployer
      *
      * @return array
      */
-    public function getNotes()
+    public function getNotes(): array
     {
         return $this->notes;
     }
@@ -195,7 +200,7 @@ class Deployer
      *
      * @return DeploymentRepository
      */
-    public function getRepository()
+    public function getRepository(): DeploymentRepository
     {
         return $this->repository;
     }
@@ -206,7 +211,7 @@ class Deployer
      * @param Connection $connection
      * @return Grammar
      */
-    protected function getSchemaGrammar($connection)
+    protected function getSchemaGrammar(Connection $connection): Grammar
     {
         if (is_null($grammar = $connection->getSchemaGrammar())) {
             $connection->useDefaultSchemaGrammar();
@@ -223,7 +228,7 @@ class Deployer
      * @param string $message
      * @return void
      */
-    protected function note($message)
+    protected function note(string $message)
     {
         $this->notes[] = $message;
     }
@@ -235,7 +240,7 @@ class Deployer
      * @param array $ran
      * @return array
      */
-    protected function pendingDeployments($files, $ran)
+    protected function pendingDeployments(array $files, array $ran): array
     {
         return Collection::make($files)
             ->reject(function ($file) use ($ran) {
@@ -250,7 +255,7 @@ class Deployer
      *
      * @return bool
      */
-    public function repositoryExists()
+    public function repositoryExists(): bool
     {
         return $this->repository->repositoryExists();
     }
@@ -272,9 +277,9 @@ class Deployer
      * Resolve a deployment instance from a file.
      *
      * @param string $file
-     * @return object
+     * @return Deployment
      */
-    public function resolve($file)
+    public function resolve(string $file): Deployment
     {
         $class = Str::studly(implode('_', array_slice(explode('_', $file), 4)));
 
@@ -287,7 +292,7 @@ class Deployer
      * @param string $connection
      * @return Connection
      */
-    public function resolveConnection($connection)
+    public function resolveConnection(string $connection): Connection
     {
         return $this->resolver->connection($connection ?: $this->connection);
     }
@@ -299,7 +304,7 @@ class Deployer
      * @return array
      * @throws \Throwable
      */
-    public function run($path = '')
+    public function run(string $path = ''): array
     {
         $this->notes = [];
 
@@ -321,11 +326,10 @@ class Deployer
      * @return void
      * @throws \Throwable
      */
-    protected function runDeployment($file)
+    protected function runDeployment(string $file)
     {
         $name = $this->getDeploymentName($file);
 
-        /** @var Deployment $deployment */
         $deployment = $this->resolve($name);
 
         $this->note("<comment>Deploying:</comment> {$name}");
@@ -343,8 +347,8 @@ class Deployer
 
         $version = $this->calculateNewVersion($deployment);
         $preRelease = $deployment->isPreRelease() !== false ? $deployment->isPreRelease() : null;
-        $build = $this->getCommitHash();
-        $releaseNotes = empty($deployment->getReleaseNotes()) ? null : $deployment->getReleaseNotes();
+        $build = $this->getBuild();
+        $releaseNotes = $deployment->getReleaseNotes();
 
         $this->repository->log($name, $version, $preRelease, $build, $releaseNotes);
 
@@ -363,11 +367,13 @@ class Deployer
     public function runPending(array $deployments)
     {
         if (count($deployments) === 0) {
+            // deployments have already been run
             $this->note('<info>Nothing to deploy.</info>');
 
             return;
         }
 
+        // run each deployment
         foreach ($deployments as $file) {
             $this->runDeployment($file);
         }
@@ -394,7 +400,7 @@ class Deployer
      * @param string $name
      * @return void
      */
-    public function setConnection($name)
+    public function setConnection(string $name)
     {
         if (!is_null($name)) {
             $this->resolver->setDefaultConnection($name);

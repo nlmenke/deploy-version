@@ -97,20 +97,23 @@ abstract class Deployment
     /**
      * Release notes for the deployment.
      *
-     * Any release notes that should be added for the new feature. Arrays will be JSON encoded
-     * while strings will be input as written to the deployment database table.
+     * Any release notes that should be added for the new feature.
      *
      * @var array
      */
     protected $releaseNotes = [];
 
     /**
+     * The console output instance.
+     *
      * @var ConsoleOutput
      */
     protected $output;
 
     /**
      * Create a new deployment instance.
+     *
+     * @return void
      */
     public function __construct()
     {
@@ -122,7 +125,7 @@ abstract class Deployment
      *
      * @return bool
      */
-    public function isMajor()
+    public function isMajor(): bool
     {
         return $this->major;
     }
@@ -132,7 +135,7 @@ abstract class Deployment
      *
      * @return bool
      */
-    public function isMinor()
+    public function isMinor(): bool
     {
         return $this->minor;
     }
@@ -142,7 +145,7 @@ abstract class Deployment
      *
      * @return bool
      */
-    public function isPatch()
+    public function isPatch(): bool
     {
         return $this->patch;
     }
@@ -162,7 +165,7 @@ abstract class Deployment
      *
      * @return bool
      */
-    public function hasMigrations()
+    public function hasMigrations(): bool
     {
         return $this->migrate;
     }
@@ -172,7 +175,7 @@ abstract class Deployment
      *
      * @return array
      */
-    public function getReleaseNotes()
+    public function getReleaseNotes(): array
     {
         return $this->releaseNotes;
     }

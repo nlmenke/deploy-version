@@ -57,7 +57,7 @@ class DeployCommand extends BaseCommand
      *
      * @return array
      */
-    protected function getOptions()
+    protected function getOptions(): array
     {
         return [
             ['message', 'm', Inputoption::VALUE_OPTIONAL, 'The message for maintenance mode'],

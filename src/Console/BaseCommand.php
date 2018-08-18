@@ -9,7 +9,7 @@ class BaseCommand extends Command
      *
      * @return string
      */
-    protected function getDeploymentPath()
+    protected function getDeploymentPath(): string
     {
         return $this->laravel->basePath() . DIRECTORY_SEPARATOR . 'deployments';
     }

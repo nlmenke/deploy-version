@@ -33,7 +33,7 @@ class DeploymentCreator
      * @return string
      * @throws \Exception
      */
-    public function create($name, $path, $options)
+    public function create(string $name, string $path, array $options): string
     {
         $this->ensureDeploymentDoesntAlreadyExist($name);
 
@@ -55,7 +55,7 @@ class DeploymentCreator
      * @return void
      * @throws \InvalidArgumentException
      */
-    protected function ensureDeploymentDoesntAlreadyExist($name)
+    protected function ensureDeploymentDoesntAlreadyExist(string $name)
     {
         $className = $this->getClassName($name);
 
@@ -71,7 +71,7 @@ class DeploymentCreator
      * @return string
      * @throws FileNotFoundException
      */
-    protected function getStub($stub = 'deploy')
+    protected function getStub(string $stub = 'deploy'): string
     {
         return $this->files->get($this->stubPath() . DIRECTORY_SEPARATOR . "{$stub}.stub");
     }
@@ -85,7 +85,7 @@ class DeploymentCreator
      * @return string
      * @throws FileNotFoundException
      */
-    protected function populateStub($name, $stub, $options)
+    protected function populateStub(string $name, string $stub, array $options): string
     {
         $isPatch = "true";
         if ($options['major']) {
@@ -140,7 +140,7 @@ class DeploymentCreator
      * @param string $name
      * @return string
      */
-    protected function getClassName($name)
+    protected function getClassName(string $name): string
     {
         return Str::studly($name);
     }
@@ -152,7 +152,7 @@ class DeploymentCreator
      * @param string $path
      * @return string
      */
-    protected function getPath($name, $path)
+    protected function getPath(string $name, string $path): string
     {
         $filename = $this->getDatePrefix();
         if ($name !== '') {
@@ -167,7 +167,7 @@ class DeploymentCreator
      *
      * @return string
      */
-    protected function getDatePrefix()
+    protected function getDatePrefix(): string
     {
         return date('Y_m_d_His');
     }
@@ -177,7 +177,7 @@ class DeploymentCreator
      *
      * @return string
      */
-    public function stubPath()
+    public function stubPath(): string
     {
         return __DIR__ . DIRECTORY_SEPARATOR . 'stubs';
     }
@@ -187,7 +187,7 @@ class DeploymentCreator
      *
      * @return Filesystem
      */
-    public function getFilesystem()
+    public function getFilesystem(): Filesystem
     {
         return $this->files;
     }

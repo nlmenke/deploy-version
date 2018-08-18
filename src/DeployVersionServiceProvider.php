@@ -46,7 +46,7 @@ class DeployVersionServiceProvider extends ServiceProvider
      *
      * @return array
      */
-    public function provides()
+    public function provides(): array
     {
         return [
             Deployer::class,
@@ -121,6 +121,11 @@ class DeployVersionServiceProvider extends ServiceProvider
         });
     }
 
+    /**
+     * Register the facade.
+     *
+     * @return void
+     */
     protected function registerFacade()
     {
         $this->app->singleton(DeployVersionService::class, function ($app) {

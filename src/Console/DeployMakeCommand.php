@@ -54,7 +54,7 @@ class DeployMakeCommand extends BaseCommand
      *
      * @return array
      */
-    protected function getArguments()
+    protected function getArguments(): array
     {
         return [
             ['name', InputArgument::OPTIONAL, 'The name of the deployment/feature'],
@@ -66,7 +66,7 @@ class DeployMakeCommand extends BaseCommand
      *
      * @return array
      */
-    protected function getOptions()
+    protected function getOptions(): array
     {
         return [
             ['major', '', InputOption::VALUE_NONE, 'Create a major release deployment'],
@@ -99,7 +99,7 @@ class DeployMakeCommand extends BaseCommand
      * @return void
      * @throws \Exception
      */
-    protected function writeDeployment($name)
+    protected function writeDeployment(string $name)
     {
         $file = pathinfo($this->creator->create($name, $this->getDeploymentPath(), $this->input->getOptions()), PATHINFO_FILENAME);
 
