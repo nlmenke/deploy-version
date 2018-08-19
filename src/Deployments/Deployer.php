@@ -335,10 +335,11 @@ class Deployer
         $this->note("<comment>Deploying:</comment> {$name}");
 
         if ($deployment->hasMigrations() && !$this->migrated) {
-            $this->migrated = true;
-
             $output = new ConsoleOutput;
+
             \Artisan::call('migrate', [], $output);
+
+            $this->migrated = true;
         }
 
         if (method_exists($deployment, 'deploy')) {
@@ -378,8 +379,9 @@ class Deployer
             $this->runDeployment($file);
         }
 
-        // clear cache and views
         $output = new ConsoleOutput;
+
+        // clear cache and views
         \Artisan::call('cache:clear', [], $output);
         \Artisan::call('view:clear', [], $output);
 

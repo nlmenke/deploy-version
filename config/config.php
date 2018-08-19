@@ -57,7 +57,7 @@ return [
         'git pull',
         'composer install',
         'yarn',
-        'npm run ' . (\App::isLocal() ? 'development' : 'production'),
+        'npm run ' . (config('env') === 'production' ? 'production' : 'development'),
     ],
 
 ];

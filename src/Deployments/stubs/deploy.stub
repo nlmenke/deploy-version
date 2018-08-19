@@ -28,7 +28,7 @@ class DummyClass extends Deployment
     /**
      * Additional deployment functionality.
      *
-     * return void
+     * @return void
      */
     public function deploy()
     {

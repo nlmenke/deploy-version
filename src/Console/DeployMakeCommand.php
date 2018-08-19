@@ -57,7 +57,7 @@ class DeployMakeCommand extends BaseCommand
     protected function getArguments(): array
     {
         return [
-            ['name', InputArgument::OPTIONAL, 'The name of the deployment/feature'],
+            ['name', InputArgument::REQUIRED, 'The name of the deployment/feature'],
         ];
     }
 
