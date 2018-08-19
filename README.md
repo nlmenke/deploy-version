@@ -265,13 +265,7 @@ the release's version as the key:
 ```php
 DeployVersion::releaseNotes();
 
-/*
-[
-    "1.0.0" => [ /* notes for this release */ ],
-    "1.0.0-beta" => [ /* notes for this beta release */ ],
-    "0.1.0-dev" => [ /* notes for this minor release */ ],
-]
-*/
+// [ '1.0.0' => [ /* notes for this release */ ], '1.0.0-beta' => [ /* notes for this beta release */ ], '0.1.0-dev' => [ /* notes for this minor release */ ] ]
 ```
 
 You can also pass `major` as the first parameter to only return notes for the latest major release.
