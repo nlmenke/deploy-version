@@ -103,16 +103,74 @@ class DeployVersionService
     }
 
     /**
+     * Get release notes for deployments.
+     *
+     * @param string $level
+     * @return array
+     */
+    public function releaseNotes($level = 'all'): array
+    {
+        if (!$this->repository->repositoryExists() || ($deployments = $this->repository->getAll()) === null) {
+            // default to an empty array
+            $deployments = [];
+        }
+
+        $deployments = (new Collection($deployments))->map(function ($deployment) {
+            return (new Collection($deployment))->except('id', 'deployment');
+        });
+
+        if ($level == 'major' || $level == 'minor') {
+            // all notes from latest major release
+            $current = $deployments->first();
+            $currentVersionArr = explode('.', $current['version']);
+
+            $deployments = $deployments->filter(function (Collection $deployment) use ($currentVersionArr) {
+                $versionArr = explode('.', $deployment['version']);
+                $major = reset($versionArr);
+
+                $currentMajor = reset($currentVersionArr);
+
+                return $major === $currentMajor;
+            });
+
+            if ($level == 'minor') {
+                // all notes from latest minor release
+                $deployments = $deployments->filter(function (Collection $deployment) use ($currentVersionArr) {
+                    $versionArr = explode('.', $deployment['version']);
+                    $minor = $versionArr[1];
+
+                    $currentMinor = $currentVersionArr[1];
+
+                    return $minor === $currentMinor;
+                });
+            }
+        } elseif ($level == 'single') {
+            // only the latest release
+            $deployments = [
+                $deployments->first()
+            ];
+        }
+
+        $notes = (new Collection($deployments))->reduce(function ($notes, Collection $deployment) {
+            $notes[$deployment['version'] . ($deployment['pre_release'] ? '-' . $deployment['pre_release'] : '')] = json_decode($deployment['release_notes']);
+
+            return $notes;
+        });
+
+        return $notes;
+    }
+
+    /**
      * Get the latest version.
      *
-     * @param string|null $method
+     * @param string $length
      * @return string
      */
-    public function version(string $method = null): string
+    public function version(string $length = 'full'): string
     {
-        if ($method == 'long') {
+        if ($length == 'long') {
             return $this->long();
-        } elseif ($method == 'short') {
+        } elseif ($length == 'short') {
             return $this->short();
         }
 

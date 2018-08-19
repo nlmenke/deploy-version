@@ -233,6 +233,50 @@ before the command is executed. To force the command to run without a prompt, us
 php artisan deploy --force
 ```
 
+### Retrieving Current Version
+To get the latest version, you will need to use the DeployVersion facade:
+```php
+DeployVersion::version();
+
+// v2.1.0-dev+8752f75
+```
+
+They can be returned as different lengths by either passing the length parameter or by calling the
+methods manually (`version` calls the `full` method by default):
+```php
+DeployVersion::full();
+
+// v2.1.0-dev+8752f75
+
+DeployVersion::version('short');
+DeployVersion::short();
+
+// v2.1.0-dev
+
+DeployVersion::version('long');
+DeployVersion::long();
+
+// Version 2.1.0-dev <span>(build 8752f75)</span>
+```
+
+### Retrieving Release Notes
+Pulling release notes will also use the DeployVersion facade. This method will return an array with
+the release's version as the key:
+```php
+DeployVersion::releaseNotes();
+
+/*
+[
+    "1.0.0" => [ /* notes for this release */ ],
+    "1.0.0-beta" => [ /* notes for this beta release */ ],
+    "0.1.0-dev" => [ /* notes for this minor release */ ],
+]
+*/
+```
+
+You can also pass `major` as the first parameter to only return notes for the latest major release.
+`minor` will return notes for the latest minor release and `single` will only return notes for the
+latest release. Any parameter passed will result in a similar array returned.
+
 ### Todo
-* [ ] add functionality to get release notes
 * [ ] testing suite

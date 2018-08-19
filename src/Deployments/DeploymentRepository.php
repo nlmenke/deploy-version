@@ -44,6 +44,19 @@ class DeploymentRepository
     }
 
     /**
+     * Get all deployments.
+     *
+     * @return Collection|null
+     */
+    public function getAll()
+    {
+        return $this->table()
+            ->orderBy('version', 'desc')
+            ->orderBy('deployment', 'desc')
+            ->get();
+    }
+
+    /**
      * Get the last deployment.
      *
      * @return Collection|null
