@@ -1,5 +1,6 @@
 <?php namespace NLMenke\DeployVersion\Deployments;
 
+use Carbon\Carbon;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Query\Builder;
@@ -52,6 +53,7 @@ class DeploymentRepository
     {
         return $this->table()
             ->orderBy('version', 'desc')
+            ->orderBy('deployed_at', 'desc')
             ->orderBy('deployment', 'desc')
             ->get();
     }
@@ -65,6 +67,7 @@ class DeploymentRepository
     {
         return $this->table()
             ->orderBy('version', 'desc')
+            ->orderBy('deployed_at', 'desc')
             ->orderBy('deployment', 'desc')
             ->get()
             ->first();
@@ -79,6 +82,7 @@ class DeploymentRepository
     {
         return $this->table()
             ->orderBy('version', 'desc')
+            ->orderBy('deployed_at', 'desc')
             ->orderBy('deployment', 'asc')
             ->pluck('deployment')
             ->all();
@@ -102,6 +106,7 @@ class DeploymentRepository
             'pre_release' => $preRelease,
             'build' => $build,
             'release_notes' => json_encode($releaseNotes),
+            'deployed_at' => Carbon::now(),
         ];
 
         $this->table()
@@ -125,6 +130,7 @@ class DeploymentRepository
             $table->string('pre_release')->nullable();
             $table->string('build')->nullable();
             $table->text('release_notes');
+            $table->timestamp('deployed_at')->nullable();
         });
 
         (new ConsoleOutput)->write('<info>Deployment table created successfully.</info>', true);
@@ -181,7 +187,7 @@ class DeploymentRepository
      * @param string $name
      * @return void
      */
-    public function setSource($name)
+    public function setSource(string $name)
     {
         $this->connection = $name;
     }
