@@ -238,20 +238,20 @@ To get the latest version, you will need to use the DeployVersion facade:
 ```php
 DeployVersion::version();
 
-// v2.1.0-dev+8752f75
+// 2.1.0-dev
 ```
 
 They can be returned as different lengths by either passing the length parameter or by calling the
 methods manually (`version` calls the `full` method by default):
 ```php
-DeployVersion::full();
+DeployVersion::release();
 
-// v2.1.0-dev+8752f75
+// 2.1.0-dev
 
 DeployVersion::version('short');
 DeployVersion::short();
 
-// v2.1.0-dev
+// v2.1.0-alpha+8752f75
 
 DeployVersion::version('long');
 DeployVersion::long();
@@ -271,6 +271,16 @@ DeployVersion::releaseNotes();
 You can also pass `major` as the first parameter to only return notes for the latest major release.
 `minor` will return notes for the latest minor release and `single` will only return notes for the
 latest release. Any parameter passed will result in a similar array returned.
+
+### Release Date
+The latest release's date/time can be accessed by calling the date function. This will return a
+Carbon object, so you may manipulate it how you wish (See
+[Carbon](https://github.com/briannesbitt/carbon) for details):
+```php
+DeployVersion::date()->format('Ymd');
+
+// 20180821
+```
 
 ### Todo
 * [ ] testing suite

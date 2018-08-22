@@ -1,5 +1,6 @@
 <?php namespace NLMenke\DeployVersion;
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Collection;
 use NLMenke\DeployVersion\Deployments\DeploymentRepository;
@@ -33,6 +34,18 @@ class DeployVersionService
     }
 
     /**
+     * Get the latest version's release date.
+     *
+     * @return Carbon
+     */
+    public function date(): Carbon
+    {
+        $latestDeployment = $this->getLatestDeployment();
+
+        return Carbon::parse($latestDeployment['deployed_at']);
+    }
+
+    /**
      * Pull the latest deployment information.
      *
      * @return Collection
@@ -51,26 +64,12 @@ class DeployVersionService
                 'pre_release' => $preRelease,
                 'build' => substr(sha1(get_class($this)), 0, 7),
                 'release_notes' => json_encode([]),
+                'deployed_at' => Carbon::now(),
             ];
         }
 
         return (new Collection($latestDeployment))
             ->except('id', 'deployment');
-    }
-
-    /**
-     * Get the full version string.
-     *
-     * @example v2.1.0-alpha+8752f75
-     * @return string
-     */
-    public function full(): string
-    {
-        $latestDeployment = $this->getLatestDeployment();
-
-        return 'v' . $latestDeployment['version']
-            . ($latestDeployment['pre_release'] ? '-' . $latestDeployment['pre_release'] : '')
-            . '+' . $latestDeployment['build'];
     }
 
     /**
@@ -89,16 +88,16 @@ class DeployVersionService
     }
 
     /**
-     * Get the short version string.
+     * Get the version's release string.
      *
-     * @example v2.1.0-alpha
+     * @example 2.1.0-alpha
      * @return string
      */
-    public function short(): string
+    public function release(): string
     {
         $latestDeployment = $this->getLatestDeployment();
 
-        return 'v' . $latestDeployment['version']
+        return $latestDeployment['version']
             . ($latestDeployment['pre_release'] ? '-' . $latestDeployment['pre_release'] : '');
     }
 
@@ -161,6 +160,21 @@ class DeployVersionService
     }
 
     /**
+     * Get the short version string.
+     *
+     * @example v2.1.0-alpha+8752f75
+     * @return string
+     */
+    public function short(): string
+    {
+        $latestDeployment = $this->getLatestDeployment();
+
+        return 'v' . $latestDeployment['version']
+            . ($latestDeployment['pre_release'] ? '-' . $latestDeployment['pre_release'] : '')
+            . '+' . $latestDeployment['build'];
+    }
+
+    /**
      * Get the latest version.
      *
      * @param string $length
@@ -174,6 +188,6 @@ class DeployVersionService
             return $this->short();
         }
 
-        return $this->full();
+        return $this->release();
     }
 }
