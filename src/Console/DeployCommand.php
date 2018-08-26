@@ -80,7 +80,7 @@ class DeployCommand extends BaseCommand
         $this->startMaintenance();
 
         // get the version before deployment
-        $preDeployVersion = \DeployVersion::version('short');
+        $preDeployVersion = \DeployVersion::release();
 
         if (!$this->deployer->repositoryExists()) {
             $this->repository->createRepository();
@@ -93,7 +93,7 @@ class DeployCommand extends BaseCommand
         }
 
         // get the version after deployment
-        $postDeployVersion = \DeployVersion::version('short');
+        $postDeployVersion = \DeployVersion::fresh()->release();
 
         $deploymentsRun = $this->deployer->getDeploymentsRun();
 

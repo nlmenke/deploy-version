@@ -242,7 +242,7 @@ DeployVersion::version();
 ```
 
 They can be returned as different lengths by either passing the length parameter or by calling the
-methods manually (`version` calls the `full` method by default):
+methods manually (`version` calls the `release` method by default):
 ```php
 DeployVersion::release();
 
@@ -259,17 +259,17 @@ DeployVersion::long();
 // Version 2.1.0-dev <span>(build 8752f75)</span>
 ```
 
-### Retrieving Release Notes
+### Release Notes
 Pulling release notes will also use the DeployVersion facade. This method will return an array with
 the release's version as the key:
 ```php
 DeployVersion::releaseNotes();
 
-// [ '1.0.0' => [ /* notes for this release */ ], '1.0.0-beta' => [ /* notes for this beta release */ ], '0.1.0-dev' => [ /* notes for this minor release */ ] ]
+// [ '1.0.0 <span>(August 25, 2018)</span>' => [ /* notes for this release */ ], '1.0.0-beta <span>(August 23, 2018)</span>' => [ /* notes for this beta release */ ] ]
 ```
 
-You can also pass `major` as the first parameter to only return notes for the latest major release.
-`minor` will return notes for the latest minor release and `single` will only return notes for the
+You can also pass `major` as the first parameter to only return notes for the latest major release;
+`minor` will return notes for the latest minor release; `single` will only return notes for the
 latest release. Any parameter passed will result in a similar array returned.
 
 ### Release Date

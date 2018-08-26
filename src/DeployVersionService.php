@@ -15,6 +15,20 @@ class DeployVersionService
     protected $app;
 
     /**
+     * List of deployments.
+     *
+     * @var Collection
+     */
+    protected $deployments;
+
+    /**
+     * The latest deployment.
+     *
+     * @var Collection
+     */
+    protected $latest;
+
+    /**
      * The deployment repository instance.
      *
      * @var DeploymentRepository
@@ -31,6 +45,9 @@ class DeployVersionService
     {
         $this->app = app();
         $this->repository = $repository;
+
+        $this->deployments = $this->getDeployments();
+        $this->latest = $this->deployments->first();
     }
 
     /**
@@ -40,26 +57,24 @@ class DeployVersionService
      */
     public function date(): Carbon
     {
-        $latestDeployment = $this->getLatestDeployment();
-
-        return Carbon::parse($latestDeployment['deployed_at']);
+        return $this->latest['deployed_at'];
     }
 
     /**
-     * Pull the latest deployment information.
+     * Get deployment information.
      *
      * @return Collection
      */
-    private function getLatestDeployment(): Collection
+    private function getDeployments(): Collection
     {
-        if (!$this->repository->repositoryExists() || ($latestDeployment = $this->repository->getLatest()) === null) {
-            // default to staring version information
+        if (!$this->repository->repositoryExists() || empty($deployments = $this->repository->getAll())) {
+            // default to single release with starting version information
             $default = explode('-', config('deploy-version.starting_version'));
 
             $version = reset($default);
             $preRelease = (end($default) != $version) ? end($default) : null;
 
-            $latestDeployment = [
+            $deployments[] = (object)[
                 'version' => $version,
                 'pre_release' => $preRelease,
                 'build' => substr(sha1(get_class($this)), 0, 7),
@@ -68,8 +83,27 @@ class DeployVersionService
             ];
         }
 
-        return (new Collection($latestDeployment))
-            ->except('id', 'deployment');
+        $deployments = (new Collection($deployments))->map(function ($deployment) {
+            $deployment->deployed_at = Carbon::parse($deployment->deployed_at);
+
+            return (new Collection($deployment))
+                ->except('id', 'deployment');
+        });
+
+        return $deployments;
+    }
+
+    /**
+     * Reset latest deployment when multiple calls occur in the same deployment cycle.
+     *
+     * @return $this
+     */
+    public function fresh()
+    {
+        $this->deployments = $this->getDeployments();
+        $this->latest = $this->deployments->first();
+
+        return $this;
     }
 
     /**
@@ -80,11 +114,8 @@ class DeployVersionService
      */
     public function long(): string
     {
-        $latestDeployment = $this->getLatestDeployment();
-
-        return 'Version ' . $latestDeployment['version']
-            . ($latestDeployment['pre_release'] ? '-' . $latestDeployment['pre_release'] : '')
-            . ' <span>(build ' . $latestDeployment['build'] . ')</span>';
+        return 'Version ' . $this->release()
+            . ' <span>(build ' . $this->latest['build'] . ')</span>';
     }
 
     /**
@@ -95,10 +126,8 @@ class DeployVersionService
      */
     public function release(): string
     {
-        $latestDeployment = $this->getLatestDeployment();
-
-        return $latestDeployment['version']
-            . ($latestDeployment['pre_release'] ? '-' . $latestDeployment['pre_release'] : '');
+        return $this->latest['version']
+            . ($this->latest['pre_release'] ? '-' . $this->latest['pre_release'] : '');
     }
 
     /**
@@ -109,19 +138,11 @@ class DeployVersionService
      */
     public function releaseNotes($level = 'all'): array
     {
-        if (!$this->repository->repositoryExists() || ($deployments = $this->repository->getAll()) === null) {
-            // default to an empty array
-            $deployments = [];
-        }
-
-        $deployments = (new Collection($deployments))->map(function ($deployment) {
-            return (new Collection($deployment))->except('id', 'deployment');
-        });
+        $deployments = $this->deployments;
 
         if ($level == 'major' || $level == 'minor') {
-            // all notes from latest major release
-            $current = $deployments->first();
-            $currentVersionArr = explode('.', $current['version']);
+            // only latest major release
+            $currentVersionArr = explode('.', $this->latest['version']);
 
             $deployments = $deployments->filter(function (Collection $deployment) use ($currentVersionArr) {
                 $versionArr = explode('.', $deployment['version']);
@@ -133,7 +154,7 @@ class DeployVersionService
             });
 
             if ($level == 'minor') {
-                // all notes from latest minor release
+                // only latest minor release
                 $deployments = $deployments->filter(function (Collection $deployment) use ($currentVersionArr) {
                     $versionArr = explode('.', $deployment['version']);
                     $minor = $versionArr[1];
@@ -146,17 +167,19 @@ class DeployVersionService
         } elseif ($level == 'single') {
             // only the latest release
             $deployments = [
-                $deployments->first()
+                $this->latest
             ];
         }
 
         $notes = (new Collection($deployments))->reduce(function ($notes, Collection $deployment) {
-            $notes[$deployment['version'] . ($deployment['pre_release'] ? '-' . $deployment['pre_release'] : '')] = json_decode($deployment['release_notes']);
+            $release = $this->release() . ' <span>(' . $this->date()->format('F d, Y ') . ')</span>';
+
+            $notes[$release] = json_decode($deployment['release_notes']);
 
             return $notes;
         });
 
-        return $notes;
+        return $notes ?? [];
     }
 
     /**
@@ -167,11 +190,8 @@ class DeployVersionService
      */
     public function short(): string
     {
-        $latestDeployment = $this->getLatestDeployment();
-
-        return 'v' . $latestDeployment['version']
-            . ($latestDeployment['pre_release'] ? '-' . $latestDeployment['pre_release'] : '')
-            . '+' . $latestDeployment['build'];
+        return 'v' . $this->release()
+            . '+' . $this->latest['build'];
     }
 
     /**
@@ -180,7 +200,7 @@ class DeployVersionService
      * @param string $length
      * @return string
      */
-    public function version(string $length = 'full'): string
+    public function version(string $length = 'release'): string
     {
         if ($length == 'long') {
             return $this->long();
