@@ -53,7 +53,7 @@ return [
     */
 
     'commands' => [
-        'git reset --hard HEAD',
+        'git reset --hard',
         'git pull',
         'composer install',
         'yarn',

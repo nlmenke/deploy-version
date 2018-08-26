@@ -84,7 +84,7 @@ class Deployer
         $oldVersion = config('deploy-version.starting_version');
 
         // pull the latest version from the deployments table
-        $latestDeployment = $this->repository->getLatest();
+        $latestDeployment = $this->repository->getAll()->first();
         if ($latestDeployment !== null) {
             $oldVersion = $latestDeployment->version;
         }
