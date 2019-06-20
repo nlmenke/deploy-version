@@ -1,9 +1,0 @@
-
-    /**
-     * Release notes for the deployment.
-     *
-     * @var array
-     */
-    protected $releaseNotes = [
-        //
-    ];
