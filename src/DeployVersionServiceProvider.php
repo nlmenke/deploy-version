@@ -1,6 +1,7 @@
 <?php namespace NLMenke\DeployVersion;
 
 use Illuminate\Support\ServiceProvider;
+use NLMenke\DeployVersion\Console\DeployMakeCommand;
 
 /**
  * Class DeployVersionServiceProvider
@@ -11,14 +12,7 @@ use Illuminate\Support\ServiceProvider;
 class DeployVersionServiceProvider extends ServiceProvider
 {
     /**
-     * Indicates if loading of the provider is deferred.
-     *
-     * @var bool
-     */
-    protected $defer = true;
-
-    /**
-     * Bootstrap services.
+     * Bootstrap the application services.
      *
      * @return void
      */
@@ -40,12 +34,24 @@ class DeployVersionServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register services.
+     * Register any application services.
      *
      * @return void
      */
     public function register()
     {
-        //
+        $this->registerCommands();
+    }
+
+    /**
+     * Register the deployment commands.
+     *
+     * @return void
+     */
+    protected function registerCommands()
+    {
+        $this->commands([
+            DeployMakeCommand::class,
+        ]);
     }
 }

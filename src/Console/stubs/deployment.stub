@@ -1,0 +1,25 @@
+<?php
+
+use NLMenke\DeployVersion\Console\Deployment;
+
+class DummyClass extends Deployment
+{
+{MAJOR_VARIABLE}
+{MINOR_VARIABLE}
+{PATCH_VARIABLE}
+{PRE_RELEASE_VARIABLE}
+{MIGRATE_VARIABLE}
+{RELEASE_NOTES_VARIABLE}
+    /**
+     * Additional deployment functionality.
+     *
+     * Any feature-specific processes that should occur during deployment. This will be executed at
+     * the end of this feature's deployment.
+     *
+     * @return void
+     */
+    public function deploy()
+    {
+        //
+    }
+}

@@ -1,0 +1,12 @@
+
+    /**
+     * Release notes for the deployment.
+     *
+     * Any release notes that should be added for the new feature. This variable must remain, at
+     * it's core, an array. However, element structure can vary based on the project.
+     *
+     * @var array
+     */
+    protected $releaseNotes = [
+        {RELEASE_NOTES_VALUE}
+    ];
