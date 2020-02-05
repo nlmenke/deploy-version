@@ -1,4 +1,6 @@
-<?php namespace NLMenke\DeployVersion;
+<?php
+
+namespace NLMenke\DeployVersion;
 
 use Illuminate\Support\Facades\Facade;
 

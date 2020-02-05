@@ -1,4 +1,6 @@
-<?php namespace NLMenke\DeployVersion\Console;
+<?php
+
+namespace NLMenke\DeployVersion\Console;
 
 use Illuminate\Support\Composer;
 use Illuminate\Support\Str;

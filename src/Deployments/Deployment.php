@@ -1,4 +1,6 @@
-<?php namespace NLMenke\DeployVersion\Deployments;
+<?php
+
+namespace NLMenke\DeployVersion\Deployments;
 
 use Symfony\Component\Console\Output\ConsoleOutput;
 
@@ -117,7 +119,7 @@ abstract class Deployment
      */
     public function __construct()
     {
-        $this->output = new ConsoleOutput;
+        $this->output = new ConsoleOutput();
     }
 
     /**
