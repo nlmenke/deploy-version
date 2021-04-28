@@ -1,4 +1,6 @@
-<?php namespace NLMenke\DeployVersion\Deployments;
+<?php
+
+namespace NLMenke\DeployVersion\Deployments;
 
 use Carbon\Carbon;
 use Illuminate\Database\Connection;
@@ -118,7 +120,7 @@ class DeploymentRepository
             $table->timestamp('deployed_at')->nullable();
         });
 
-        (new ConsoleOutput)->write('<info>Deployment table created successfully.</info>', true);
+        (new ConsoleOutput())->write('<info>Deployment table created successfully.</info>', true);
     }
 
     /**
