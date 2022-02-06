@@ -1,4 +1,6 @@
-<?php namespace NLMenke\DeployVersion\Deployments;
+<?php
+
+namespace NLMenke\DeployVersion\Deployments;
 
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Filesystem\Filesystem;
