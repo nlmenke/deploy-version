@@ -1,4 +1,6 @@
-<?php namespace NLMenke\DeployVersion\Deployments;
+<?php
+
+namespace NLMenke\DeployVersion\Deployments;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionResolverInterface;
@@ -283,7 +285,7 @@ class Deployer
     {
         $class = Str::studly(implode('_', array_slice(explode('_', $file), 4)));
 
-        return new $class;
+        return new $class();
     }
 
     /**
@@ -335,7 +337,7 @@ class Deployer
         $this->note("<comment>Deploying:</comment> {$name}");
 
         if ($deployment->hasMigrations() && !$this->migrated) {
-            $output = new ConsoleOutput;
+            $output = new ConsoleOutput();
 
             \Artisan::call('migrate', [], $output);
 
@@ -379,7 +381,7 @@ class Deployer
             $this->runDeployment($file);
         }
 
-        $output = new ConsoleOutput;
+        $output = new ConsoleOutput();
 
         // clear cache and views
         \Artisan::call('cache:clear', [], $output);
@@ -391,7 +393,7 @@ class Deployer
             if (!\App::isLocal() || strpos($command, 'git') === false) {
                 exec($command, $output);
 
-                (new ConsoleOutput)->write($output, true);
+                (new ConsoleOutput())->write($output, true);
             }
         }
     }
